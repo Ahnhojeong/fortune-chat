@@ -101,3 +101,26 @@ button {
   font-weight: 900;
   color: #ffffff;
 }
+
+.loader {
+  width: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: loading 1s infinite cubic-bezier(0.46, 0.03, 0.52, 0.96);
+}
+
+.loader svg {
+  color: #FFFFFF;
+  display: inline-block;
+  font-size: 25px;
+}
+
+@keyframes loading {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
