@@ -3,7 +3,7 @@ import layoutStyles from "../styles/Layout.module.css";
 
 function Loader() {
   return (
-    <div className={layoutStyles.loader} style={{display: "none"}}>
+    <div className={layoutStyles.loader}>
       <AiOutlineLoading />
     </div>
   );

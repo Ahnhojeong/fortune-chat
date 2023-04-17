@@ -103,6 +103,7 @@ button {
 }
 
 .loader {
+  margin: 1rem 0;
   width: 50px;
   display: flex;
   justify-content: center;
