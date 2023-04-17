@@ -1,31 +1,38 @@
 const apiKey = "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";
 const { Configuration, OpenAIApi } = require("openai");
 
-const serverless = require('serverless-http');
 const express = require("express");
-var cors = require("cors");
+const path = require("path");
 const app = express();
+const http = require("http").createServer(app);
+const cors = require("cors");
 
 const configuration = new Configuration({
   apiKey: apiKey,
 });
 const openai = new OpenAIApi(configuration);
 
+// CORS 이슈 해결
+app.use(express.json());
 app.use(cors());
 
-// app.use(express.static(path.join(__dirname, 'client/build')));
+app.use(express.static(path.join(__dirname, "/build")));
 
-// app.get('/', function (req, res) {
-//   res.sendFile(path.join(__dirname, '/client/build/index.html'));
-// });
+app.get("/", (res, req) => {
+  req.sendFile(path.join(__dirname, "/build/index.html"));
+});
+
+app.get("*", (res, req) => {
+  req.sendFile(path.join(__dirname, "/build/index.html"));
+});
 
 // POST 요청 받을 수 있도록 함
 app.use(express.json()); // for parsing application/json
 app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
 // POST method route
-app.post("/fortuneTell", async function (req, res) {
-  console.log('req.body', req.body);
+app.post("/", async function (req, res) {
+  console.log("req.body", req.body);
   let { myDateTime, userMessages, assistantMessages } = req.body;
 
   let todayDateTime = new Date().toLocaleDateString("ko-KR", {
@@ -58,26 +65,26 @@ app.post("/fortuneTell", async function (req, res) {
     },
   ];
 
-  while (userMessages.length != 0 || assistantMessages.length != 0) {
-    if (userMessages.length != 0) {
-      messages.push(
-        JSON.parse(
-          '{"role": "user", "content": "' +
-            String(userMessages.shift()).replace(/\n/g, "") +
-            '"}'
-        )
-      );
-    }
-    if (assistantMessages.length != 0) {
-      messages.push(
-        JSON.parse(
-          '{"role": "assistant", "content": "' +
-            String(assistantMessages.shift()).replace(/\n/g, "") +
-            '"}'
-        )
-      );
-    }
-  }
+  // while (userMessages.length != 0 || assistantMessages.length != 0) {
+  //   if (userMessages.length != 0) {
+  //     messages.push(
+  //       JSON.parse(
+  //         '{"role": "user", "content": "' +
+  //           String(userMessages.shift()).replace(/\n/g, "") +
+  //           '"}'
+  //       )
+  //     );
+  //   }
+  //   if (assistantMessages.length != 0) {
+  //     messages.push(
+  //       JSON.parse(
+  //         '{"role": "assistant", "content": "' +
+  //           String(assistantMessages.shift()).replace(/\n/g, "") +
+  //           '"}'
+  //       )
+  //     );
+  //   }
+  // }
 
   const completion = await openai.createChatCompletion({
     model: "gpt-3.5-turbo",
@@ -86,9 +93,10 @@ app.post("/fortuneTell", async function (req, res) {
 
   let fortune = completion.data.choices[0].message["content"];
   console.log(fortune);
-  res.json({"assistant": fortune});
+  res.json({ assistant: fortune });
   // res.send(fortune);
 });
 
-// module.exports.handler = serverless(app);
-app.listen(3003);
+http.listen(8080, () => {
+  console.log("Listening on 8080");
+});
