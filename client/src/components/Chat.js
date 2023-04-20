@@ -1,75 +1,122 @@
 import { useRef, useState, useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { BsFillSendFill } from "react-icons/bs";
 import chatStyles from "../styles/Chat.module.css";
-import Loader from './Loader';
+import Loader from "./Loader";
+import {
+  setAssistantMessages,
+  setUserMessages,
+  setAllMessages,
+} from "../store/msgSlice";
+import { transDate } from "../utils/common/Transfer";
+let userMsg = [];
+function Chat({ myDate }) {
+  const dispatch = useDispatch();
+  const [inputVal, setInputVal] = useState("");
 
-function Chat() {
-  const inputRef = useRef();
-  const [userMsg, setUserMsg] = useState({});
+  const messageBoxRef = useRef(null);
+
   const date = useSelector((state) => state.date.date);
+  const allMessages = useSelector((state) => state.messages.allMessages);
+  const assistantMessages = useSelector(
+    (state) => state.messages.assistantMessages
+  );
 
-  const sendMsg = async (e) => {
-    if (inputRef.current.value) {
-      try {
-        console.log("sendMsg");
-        setUserMsg({
-          ...userMsg,
-          [Date.now()]: {
-            id: Date.now(),
-            msg: inputRef.current.value,
-          },
-        });
+  const handleChange = (e) => {
+    setInputVal(e.target.value);
+  };
 
-        const response = await fetch('http://localhost:8080/', {
-          method: 'POST',
-          headers: {
-              // 'Access-Control-Allow-Origin': '*',
-              'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-              myDateTime: date.day,
-              userMessages: "안녕하세요?",
-              assistantMessages: [],
-          })
-      });
+  const enterSendMsg = (e) => {
+    if (e.target.value !== "" && e.keyCode === 13) {
+      console.log("enterSendMsg --> ", inputVal);
 
-      const data = await response.json();
-      console.log("data res --> ", data)
-
-
-        inputRef.current.value = "";
-      } catch (err) {}
+      sendMsg();
     }
   };
 
+  const sendMsg = () => {
+    if (inputVal !== "") {
+      userMsg.push(inputVal);
+
+      dispatch(setUserMessages(inputVal));
+      dispatch(setAllMessages(inputVal));
+      setInputVal("");
+
+      console.log("userMsg --> ", userMsg);
+      
+      fetch("http://localhost:8080/", {
+        method: "POST",
+        headers: {
+          // 'Access-Control-Allow-Origin': '*',
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          myDateTime: transDate(date.day, date.hour),
+          userMessages: userMsg,
+          assistantMessages: assistantMessages,
+        }),
+      })
+        .then((response) => {
+          return response.json();
+        })
+        .then((response) => {
+          console.log("Chat response -> ", response);
+          dispatch(setAssistantMessages(response.assistant));
+          dispatch(setAllMessages(response.assistant));
+        });
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (messageBoxRef.current !== null) {
+      messageBoxRef.current.scrollTop = messageBoxRef.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [allMessages]);
+
   return (
     <div>
-      <div className={chatStyles.messages}>
-        <div className={`${chatStyles.message} ${chatStyles.me}`}>오늘 나의 운세는 어때?</div>
-        {/* <div className={`${chatStyles.message} ${chatStyles.bot}`}>
-          hello hellohellohellohellohellohellohello
-        </div> */}
-        <Loader />
-        {Object.keys(userMsg).length > 0 &&
-          Object.values(userMsg).map((item) => {
-            return (
-              <div
-                key={item.id}
-                className={`${chatStyles.message} ${chatStyles.me}`}
-              >
-                {item.msg}
-              </div>
-            );
+      <div className={chatStyles.messages} ref={messageBoxRef}>
+        <div className={`${chatStyles.message} ${chatStyles.me}`}>
+          오늘 나의 운세는 어때?
+        </div>
+
+        {/* <Loader /> */}
+        {allMessages.length > 0 &&
+          allMessages.map((item, index) => {
+            if (index % 2 === 0) {
+              return (
+                <div
+                  key={index}
+                  className={`${chatStyles.message} ${chatStyles.bot}`}
+                >
+                  {item}
+                </div>
+              );
+            } else {
+              return (
+                <div
+                  key={index}
+                  className={`${chatStyles.message} ${chatStyles.me}`}
+                >
+                  {item}
+                </div>
+              );
+            }
           })}
       </div>
 
       <div className={chatStyles.input_wrapper}>
         <input
-          ref={inputRef}
           className={chatStyles.input_box}
+          value={inputVal}
+          onChange={handleChange}
           type="text"
           placeholder="질문을 입력하세요.."
+          onKeyUp={enterSendMsg}
         />
         <button
           type="button"

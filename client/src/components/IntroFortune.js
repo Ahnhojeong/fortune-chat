@@ -1,18 +1,29 @@
-import { useRef, useState, useEffect } from "react";
-import { INTRO_MESSAGE, LOADING_MESSAGE } from "../utils/common/lang";
+import { useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
-import { useDispatch } from "react-redux";
+import { INTRO_MESSAGE, LOADING_MESSAGE } from "../utils/common/lang";
 import layoutStyles from "../styles/Layout.module.css";
 import Chat from "./Chat";
 import { setDate } from "../store/dateSlice";
+import { setAllMessages, setAssistantMessages } from "../store/msgSlice";
 import useIntroFortune from "../hook/useIntroFortune";
+import { transDate } from "../utils/common/Transfer";
 
 function IntroForture() {
   const dispatch = useDispatch();
   const dateRef = useRef();
   const hourRef = useRef();
+  const [myDate, setMyDate] = useState({
+    day: "",
+    hour: "",
+  });
 
-  const { isFortuneReady } = useIntroFortune();
+  const [isReady, setIsReady] = useState(false);
+
+  const userMessages = useSelector((state) => state.messages.userMessages);
+  const assistantMessages = useSelector(
+    (state) => state.messages.assistantMessages
+  );
 
   const startFortune = () => {
     if (!dateRef.current.value) {
@@ -24,6 +35,11 @@ function IntroForture() {
       date: dateRef.current.value,
       hour: hourRef.current.value,
     });
+    setIsReady(true);
+    setMyDate({
+      day: dateRef.current.value,
+      hour: hourRef.current.value,
+    });
 
     const getDate = {
       day: dateRef.current.value,
@@ -31,6 +47,26 @@ function IntroForture() {
     };
 
     dispatch(setDate(getDate));
+    fetch("http://localhost:8080/", {
+      method: "POST",
+      headers: {
+        // 'Access-Control-Allow-Origin': '*',
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        myDateTime: transDate(dateRef.current.value, hourRef.current.value),
+        userMessages: userMessages,
+        assistantMessages: assistantMessages,
+      }),
+    })
+      .then((response) => {
+        return response.json();
+      })
+      .then((response) => {
+        console.log("IntroFortune response -> ", response);
+        dispatch(setAssistantMessages(response.assistant));
+        dispatch(setAllMessages(response.assistant));
+      });
   };
 
   return (
@@ -42,11 +78,11 @@ function IntroForture() {
         </p>
         <img src={"image/fortune_avatar.jpeg"} alt="chat-ai" />
         <p className={layoutStyles.intro_message}>{`"${
-          !isFortuneReady ? INTRO_MESSAGE : LOADING_MESSAGE
+          !isReady ? INTRO_MESSAGE : LOADING_MESSAGE
         }"`}</p>
       </div>
 
-      {!isFortuneReady ? (
+      {!isReady ? (
         <div className={layoutStyles.intro_question}>
           <label htmlFor="date" className={layoutStyles.label_title}>
             생년월일
@@ -92,7 +128,7 @@ function IntroForture() {
           </button>
         </div>
       ) : (
-        <Chat />
+        <Chat myDate={myDate} />
       )}
     </div>
   );

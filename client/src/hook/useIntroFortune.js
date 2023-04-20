@@ -8,7 +8,6 @@ function useIntroFortune() {
 
   useEffect(() => {
     if (date.day !== "") {
-      console.log("???")
       setIsFortuneReady(true);
     }
   }, [date]);
