@@ -5,8 +5,7 @@ import { INTRO_MESSAGE, LOADING_MESSAGE } from "../utils/common/lang";
 import layoutStyles from "../styles/Layout.module.css";
 import Chat from "./Chat";
 import { setDate } from "../store/dateSlice";
-import { setAllMessages, setAssistantMessages } from "../store/msgSlice";
-import useIntroFortune from "../hook/useIntroFortune";
+import { postMessages } from "../store/msgSlice";
 import { transDate } from "../utils/common/Transfer";
 
 function IntroForture() {
@@ -47,26 +46,14 @@ function IntroForture() {
     };
 
     dispatch(setDate(getDate));
-    fetch("http://localhost:8080/", {
-      method: "POST",
-      headers: {
-        // 'Access-Control-Allow-Origin': '*',
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+
+    dispatch(
+      postMessages({
         myDateTime: transDate(dateRef.current.value, hourRef.current.value),
         userMessages: userMessages,
         assistantMessages: assistantMessages,
-      }),
-    })
-      .then((response) => {
-        return response.json();
       })
-      .then((response) => {
-        console.log("IntroFortune response -> ", response);
-        dispatch(setAssistantMessages(response.assistant));
-        dispatch(setAllMessages(response.assistant));
-      });
+    );
   };
 
   return (

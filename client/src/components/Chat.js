@@ -4,16 +4,17 @@ import { BsFillSendFill } from "react-icons/bs";
 import chatStyles from "../styles/Chat.module.css";
 import Loader from "./Loader";
 import {
-  setAssistantMessages,
   setUserMessages,
   setAllMessages,
+  postMessages,
+  getMessagesStatus,
 } from "../store/msgSlice";
 import { transDate } from "../utils/common/Transfer";
+
 let userMsg = [];
 function Chat({ myDate }) {
   const dispatch = useDispatch();
   const [inputVal, setInputVal] = useState("");
-
   const messageBoxRef = useRef(null);
 
   const date = useSelector((state) => state.date.date);
@@ -21,6 +22,7 @@ function Chat({ myDate }) {
   const assistantMessages = useSelector(
     (state) => state.messages.assistantMessages
   );
+  const status = useSelector(getMessagesStatus);
 
   const handleChange = (e) => {
     setInputVal(e.target.value);
@@ -42,28 +44,13 @@ function Chat({ myDate }) {
       dispatch(setAllMessages(inputVal));
       setInputVal("");
 
-      console.log("userMsg --> ", userMsg);
-      
-      fetch("http://localhost:8080/", {
-        method: "POST",
-        headers: {
-          // 'Access-Control-Allow-Origin': '*',
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      dispatch(
+        postMessages({
           myDateTime: transDate(date.day, date.hour),
           userMessages: userMsg,
           assistantMessages: assistantMessages,
-        }),
-      })
-        .then((response) => {
-          return response.json();
         })
-        .then((response) => {
-          console.log("Chat response -> ", response);
-          dispatch(setAssistantMessages(response.assistant));
-          dispatch(setAllMessages(response.assistant));
-        });
+      );
     }
   };
 
@@ -84,7 +71,6 @@ function Chat({ myDate }) {
           오늘 나의 운세는 어때?
         </div>
 
-        {/* <Loader /> */}
         {allMessages.length > 0 &&
           allMessages.map((item, index) => {
             if (index % 2 === 0) {
@@ -107,6 +93,7 @@ function Chat({ myDate }) {
               );
             }
           })}
+        {status === "loading" && <Loader />}
       </div>
 
       <div className={chatStyles.input_wrapper}>
@@ -117,10 +104,12 @@ function Chat({ myDate }) {
           type="text"
           placeholder="질문을 입력하세요.."
           onKeyUp={enterSendMsg}
+          disabled={status === "loading" ? true : false}
         />
         <button
           type="button"
           className={chatStyles.msg_submit_btn}
+          style={{ filter: status === "loading" ? "grayscale(1)" : "none" }}
           onClick={sendMsg}
         >
           <BsFillSendFill />
